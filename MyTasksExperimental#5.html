@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>My Tasks - Task Planner</title>
+  <!-- Link to Vue.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+  <style>
+    /* Add your CSS styles here */
+    /* Styles for the timetable, task blocks, etc. */
+    .task-block {
+      width: 100%;
+      border: 1px solid #ccc;
+      margin-bottom: 10px;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- Vue app container -->
+    <h1>My Tasks</h1>
+    <!-- Timetable -->
+    <div class="timetable">
+      <!-- Display the current date and time -->
+      <p>Current Time: {{ currentTime }}</p>
+      <!-- Red line denoting live time -->
+      <div class="red-line" :style="{ top: redLinePosition + 'px' }"></div>
+      <!-- Task blocks -->
+      <div v-for="task in tasks" :key="task.id" class="task-block" :style="{ color: taskColor(task) }">
+        <!-- Task details -->
+        <h3>{{ task.title }}</h3>
+        <p>{{ task.description }}</p>
+        <!-- Display start and end times -->
+        <p>Start Time: {{ task.startDate }}</p>
+        <p>End Time: {{ task.endDate }}</p>
+        <!-- Edit and delete buttons -->
+        <button @click="editTask(task.id)">Edit</button>
+        <button @click="deleteTask(task.id)">Delete</button>
+      </div>
+    </div>
+    <!-- Form to create/edit a task -->
+    <form v-if="editMode" @submit.prevent="updateTask">
+      <label for="editTitle">Title:</label>
+      <input type="text" id="editTitle" v-model="editedTask.title" required>
+      <label for="editDescription">Description:</label>
+      <textarea id="editDescription" v-model="editedTask.description" required></textarea>
+      <label for="editStartDate">Start Date:</label>
+      <input type="datetime-local" id="editStartDate" v-model="editedTask.startDate" required>
+      <label for="editEndDate">End Date:</label>
+      <input type="datetime-local" id="editEndDate" v-model="editedTask.endDate" required>
+      <button type="submit">Update Task</button>
+    </form>
+    <!-- Form to create a new task -->
+    <form v-else @submit.prevent="addTask">
+      <label for="title">Title:</label>
+      <input type="text" id="title" v-model="newTask.title" required>
+      <label for="description">Description:</label>
+      <textarea id="description" v-model="newTask.description" required></textarea>
+      <label for="startDate">Start Date:</label>
+      <input type="datetime-local" id="startDate" v-model="newTask.startDate" required>
+      <label for="endDate">End Date:</label>
+      <input type="datetime-local" id="endDate" v-model="newTask.endDate" required>
+      <button type="submit">Add Task</button>
+    </form>
+    <!-- Save button -->
+    <button @click="saveTasks">Save</button>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data: {
+        currentTime: new Date().toLocaleString(),
+        redLinePosition: 0,
+        tasks: JSON.parse(localStorage.getItem('tasks')) || [],
+        newTask: {
+          title: '',
+          description: '',
+          startDate: '',
+          endDate: ''
+        },
+        editMode: false,
+        editedTask: {
+          id: null,
+          title: '',
+          description: '',
+          startDate: '',
+          endDate: ''
+        }
+      },
+      mounted() {
+        // Update current time every second
+        setInterval(() => {
+          this.currentTime = new Date().toLocaleString();
+          this.updateRedLinePosition();
+          this.updateTaskStatus();
+        }, 1000);
+      },
+      methods: {
+        addTask() {
+          this.tasks.push({ 
+            id: this.tasks.length + 1,
+            title: this.newTask.title,
+            description: this.newTask.description,
+            startDate: this.newTask.startDate,
+            endDate: this.newTask.endDate
+          });
+          this.resetForm();
+        },
+        editTask(id) {
+          const taskToEdit = this.tasks.find(task => task.id === id);
+          this.editedTask = { ...taskToEdit };
+          this.editMode = true;
+        },
+        updateTask() {
+          const index = this.tasks.findIndex(task => task.id === this.editedTask.id);
+          this.tasks.splice(index, 1, { ...this.editedTask });
+          this.resetForm();
+        },
+        deleteTask(id) {
+          const index = this.tasks.findIndex(task => task.id === id);
+          this.tasks.splice(index, 1);
+        },
+        updateRedLinePosition() {
+          // Calculate the red line position based on time
+          // Adjust this logic as per the layout of your timetable
+          const now = new Date();
+          // Example: Assuming each minute represents 1 pixel
+          this.redLinePosition = (now.getMinutes() + now.getSeconds() / 60) * 1;
+        },
+        taskColor(task) {
+          // Compare the task's end time with the current time to determine color
+          const end = new Date(task.endDate);
+          const now = new Date();
+          return end <= now ? 'red' : 'darkgreen';
+        },
+        resetForm() {
+          this.newTask.title = '';
+          this.newTask.description = '';
+          this.newTask.startDate = '';
+          this.newTask.endDate = '';
+          this.editMode = false;
+          this.editedTask = {
+            id: null,
+            title: '',
+            description: '',
+            startDate: '',
+            endDate: ''
+          };
+        },
+        updateTaskStatus() {
+          // Update task colors based on completion status
+          this.tasks.forEach(task => {
+            task.color = this.taskColor(task);
+          });
+        },
+        saveTasks() {
+          localStorage.setItem('tasks', JSON.stringify(this.tasks));
+        }
+      }
+    });
+  </script>
+</body>
+</html>
